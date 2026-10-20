@@ -37,18 +37,6 @@
 | 全屏 | 右下角全屏按钮（浏览器支持时显示） |
 | 关闭弹窗 | `Esc` |
 
-## 本地运行
-
-直接双击 `index.html` 即可。也可以起一个本地静态服务器：
-
-```bash
-python -m http.server 8000
-```
-
-然后打开 [http://localhost:8000](http://localhost:8000)。
-
-不需要 `npm install`，也没有构建步骤。
-
 ## 文件结构
 
 ```text
@@ -79,7 +67,7 @@ python -m http.server 8000
 
 A single-file 2048 game with a Material Design 3 look. No dependencies, no build step, fully offline. It features two color palettes, light/dark themes, Chinese/English/Japanese UI, keyboard and pointer-drag controls, up to 20 undo steps, and a locally stored best score.
 
-Open `index.html` to play, or enable GitHub Pages with the branch set to `main` and the folder set to `/ (root)`.
+Deploy with GitHub Pages by setting the branch to `main` and the folder to `/ (root)`.
 
 The code and original assets are released under the [MIT License](LICENSE).
 
