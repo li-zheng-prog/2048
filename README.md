@@ -55,6 +55,7 @@ python -m http.server 8000
 .
 ├── index.html          # 游戏本体（单文件，内嵌字体与背景图）
 ├── README.md
+├── LICENSE             # MIT 许可证
 ├── .gitignore
 ├── .nojekyll           # 让 GitHub Pages 跳过 Jekyll 处理
 └── docs/
@@ -80,6 +81,10 @@ A single-file 2048 game with a Material Design 3 look. No dependencies, no build
 
 Open `index.html` to play, or enable GitHub Pages with the branch set to `main` and the folder set to `/ (root)`.
 
+The code and original assets are released under the [MIT License](LICENSE).
+
 ## 许可证
 
-本仓库暂未添加开源许可证。如计划允许他人使用、修改或分发，请在仓库中补充 `LICENSE` 文件（例如 MIT）。
+本项目采用 [MIT 许可证](LICENSE)，可自由使用、修改和分发，但需保留版权与许可声明。
+
+> 代码与原创素材采用 MIT 许可证；如内嵌字体或背景图来自第三方，其权利仍归原权利人所有。
