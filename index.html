@@ -305,6 +305,10 @@ body {
   background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, var(--md-sys-color-surface-container));
 }
 .icon-btn svg { width: 20px; height: 20px; fill: currentColor; }
+/* 撤销图标：圆弧走线稿、箭头填充；24px 光学尺寸让圆环与齿轮视觉等大 */
+#undoBtn svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.icon-btn:disabled { opacity: .38; cursor: default; }
+.icon-btn:disabled:hover { background: var(--md-sys-color-surface-container); }
 .segmented {
   position: relative;
   display: inline-flex;
@@ -822,7 +826,9 @@ body {
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13a7.8 7.8 0 0 0 .1-1 7.8 7.8 0 0 0-.1-1l2.1-1.6a.5.5 0 0 0 .1-.6l-2-3.5a.5.5 0 0 0-.6-.2l-2.5 1a7.6 7.6 0 0 0-1.7-1l-.4-2.6a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 0-.5.5l-.4 2.6a7.6 7.6 0 0 0-1.7 1l-2.5-1a.5.5 0 0 0-.6.2l-2 3.5a.5.5 0 0 0 .1.6L4.5 11a7.8 7.8 0 0 0-.1 1 7.8 7.8 0 0 0 .1 1l-2.1 1.6a.5.5 0 0 0-.1.6l2 3.5c.1.2.4.3.6.2l2.5-1a7.6 7.6 0 0 0 1.7 1l.4 2.6c0 .3.2.5.5.5h4c.3 0 .5-.2.5-.5l.4-2.6a7.6 7.6 0 0 0 1.7-1l2.5 1c.2.1.5 0 .6-.2l2-3.5a.5.5 0 0 0-.1-.6L19.4 13zM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5z"/></svg>
     </button>
     <button class="btn filled" id="newGameBtn" type="button" data-i18n="btn.new">新游戏</button>
-    <button class="btn tonal" id="undoBtn" type="button" disabled data-i18n="btn.undo">撤销</button>
+    <button class="icon-btn" id="undoBtn" type="button" disabled aria-label="撤销" title="撤销" data-i18n-aria="btn.undo" data-i18n-title="btn.undo">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.57 15.47A8.2 8.2 0 1 0 7.3 5.28"/><path d="M5.58 2.83 2.38 8.72 9.02 7.74Z" fill="currentColor" stroke="none"/></svg>
+    </button>
   </div>
 
   <main class="board-wrap">
