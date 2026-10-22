@@ -30,6 +30,15 @@
 
 整个游戏只有 **一个 HTML 文件**，字体与背景图均已内嵌，不需要网络、构建工具或依赖安装，断网也能直接玩。
 
+## 平板模式预览
+
+<p align="center">
+  <img src="docs/preview-tablet-light.jpg" width="32%" alt="浅色主题下的平板模式：四个圆形按钮沿屏幕右侧纵向排列">
+  <img src="docs/preview-tablet-dark.jpg" width="32%" alt="深色主题下的平板模式：四个圆形按钮沿屏幕右侧纵向排列">
+</p>
+
+开启设置中的「平板模式」后，设置、新游戏、撤销与全屏按钮统一为 69px 圆形，并停靠在屏幕右侧同一竖线；窄屏会自动回退到顶部横排。
+
 ## 操作说明
 
 | 操作 | 方式 |
@@ -52,7 +61,9 @@
 ├── .nojekyll           # 让 GitHub Pages 跳过 Jekyll 处理
 └── docs/
     ├── preview-light.jpg
-    └── preview-dark.jpg
+    ├── preview-dark.jpg
+    ├── preview-tablet-light.jpg
+    └── preview-tablet-dark.jpg
 ```
 
 ## 实现说明
