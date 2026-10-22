@@ -29,6 +29,13 @@
   var tab = null;
   try { tab = localStorage.getItem('md2048-tablet'); } catch (e) {}
   document.documentElement.setAttribute('data-tablet', tab === 'on' ? 'on' : 'off');
+  /* 自定义背景模糊度预置：首帧就生效，避免自定义图先清晰再糊一下 */
+  var blur = 0;
+  try { blur = parseInt(localStorage.getItem('md2048-bg-blur') || '0', 10); } catch (e) {}
+  if (!(blur >= 0)) blur = 0;
+  if (blur > 40) blur = 40;
+  document.documentElement.style.setProperty('--scene-custom-filter',
+    blur > 0 ? 'blur(' + blur + 'px) saturate(1.1)' : 'none');
 })();
 </script>
 <style>
@@ -184,11 +191,12 @@ body {
 }
 .scene.custom-ready .scene-layer { opacity: 0; }
 .scene.custom-ready .scene-custom { opacity: 1; }
-/* 自定义背景不压毛玻璃，只留一层轻遮罩保证文字可读 */
+/* 自定义背景不压毛玻璃，只留一层轻遮罩保证文字可读；
+   模糊度由 --scene-custom-filter 控制（设置里的滑块），0 时保持无模糊 */
 .scene.custom-ready .scene-glass {
   background: color-mix(in srgb, var(--md-sys-color-surface) 24%, transparent);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  backdrop-filter: var(--scene-custom-filter, none);
+  -webkit-backdrop-filter: var(--scene-custom-filter, none);
 }
 [data-theme="dark"] .scene.custom-ready .scene-glass {
   background: rgba(0, 0, 0, .34);
@@ -914,6 +922,72 @@ html[data-bg="off"] .scene { opacity: 0; }
   color: var(--md-sys-color-error);
 }
 .bg-error[hidden] { display: none; }
+/* ---------- 自定义背景毛玻璃模糊度滑块 ---------- */
+.bg-blur-row {
+  margin: 2px 0 10px;
+}
+.bg-blur-row[hidden] { display: none; }
+.bg-blur-row .setting-row {
+  margin-bottom: 2px;
+}
+.bg-blur-value {
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--md-sys-color-primary);
+}
+.bg-blur-range {
+  --bg-blur-fill: 0%;
+  display: block;
+  width: 100%;
+  height: 32px;
+  margin: 0;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+.bg-blur-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(to right,
+    var(--md-sys-color-primary) var(--bg-blur-fill),
+    color-mix(in srgb, var(--md-sys-color-outline) 40%, transparent) var(--bg-blur-fill));
+}
+.bg-blur-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -7px;
+  border: 2px solid var(--md-sys-color-surface-container-lowest);
+  border-radius: 50%;
+  background: var(--md-sys-color-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .28);
+}
+.bg-blur-range::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--md-sys-color-outline) 40%, transparent);
+}
+.bg-blur-range::-moz-range-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--md-sys-color-primary);
+}
+.bg-blur-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--md-sys-color-surface-container-lowest);
+  border-radius: 50%;
+  background: var(--md-sys-color-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .28);
+}
+.bg-blur-range:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 4px;
+  border-radius: 999px;
+}
 .dialog-actions {
   display: flex;
   justify-content: flex-end;
@@ -1164,6 +1238,17 @@ html[data-bg="off"] .scene { opacity: 0; }
       <small class="bg-pick-name" id="bgFileName"></small>
     </button>
     <input type="file" id="bgFile" accept="image/*" hidden>
+    <div class="bg-blur-row" id="bgBlurRow" hidden>
+      <div class="setting-row">
+        <label class="setting-copy" for="bgBlurRange">
+          <span class="setting-title" data-i18n="bg.blur">毛玻璃模糊度</span>
+          <span class="setting-desc" data-i18n="bg.blur.desc">调节自定义背景的磨砂程度，0 为清晰原图</span>
+        </label>
+        <span class="bg-blur-value" id="bgBlurValue">0 px</span>
+      </div>
+      <input class="bg-blur-range" id="bgBlurRange" type="range" min="0" max="40" step="1" value="0"
+             aria-label="毛玻璃模糊度" data-i18n-aria="bg.blur">
+    </div>
     <p class="bg-error" id="bgError" role="status" data-i18n="bg.error" hidden>图片无法加载，已恢复默认背景</p>
     <span class="section-label" data-i18n="settings.language">语言</span>
     <div class="segmented lang-seg" role="group" aria-label="Language">
@@ -1330,6 +1415,7 @@ const I18N = {
     'bg.off': '关', 'bg.on': '开', 'bg.custom': '自定义',
     'bg.pick': '选择图片', 'bg.change': '更换图片',
     'bg.error': '图片无法加载，已恢复默认背景',
+    'bg.blur': '毛玻璃模糊度', 'bg.blur.desc': '调节自定义背景的磨砂程度，0 为清晰原图',
     'theme.light': '浅色', 'theme.dark': '深色', 'theme.system': '跟随系统',
     'palette.guofeng': '国风配色', 'palette.guofeng.desc': '毛绿 · 湘蓝 · 流黄定制色板',
     'palette.classic': '经典配色', 'palette.classic.desc': '绿金双阶 · Material 绿色阶',
@@ -1359,6 +1445,7 @@ const I18N = {
     'bg.off': 'Off', 'bg.on': 'On', 'bg.custom': 'Custom',
     'bg.pick': 'Choose Image', 'bg.change': 'Change Image',
     'bg.error': 'Image unavailable — reverted to the default background',
+    'bg.blur': 'Glass Blur', 'bg.blur.desc': 'Adjust the frosted-glass softness of the custom background; 0 keeps the image sharp',
     'theme.light': 'Light', 'theme.dark': 'Dark', 'theme.system': 'System',
     'palette.guofeng': 'Guofeng Palette', 'palette.guofeng.desc': 'Custom palette — maolu · xianglan · liuhuang',
     'palette.classic': 'Classic Palette', 'palette.classic.desc': 'Green-gold dual scale · Material green',
@@ -1388,6 +1475,7 @@ const I18N = {
     'bg.off': 'オフ', 'bg.on': 'オン', 'bg.custom': 'カスタム',
     'bg.pick': '画像を選択', 'bg.change': '画像を変更',
     'bg.error': '画像を読み込めないため、既定の背景に戻しました',
+    'bg.blur': 'ぼかしの強さ', 'bg.blur.desc': 'カスタム背景のすりガラス効果を調整（0 でくっきり表示）',
     'theme.light': 'ライト', 'theme.dark': 'ダーク', 'theme.system': 'システム',
     'palette.guofeng': '国風配色', 'palette.guofeng.desc': '毛緑・湘藍・流黄のカスタム色板',
     'palette.classic': 'クラシック配色', 'palette.classic.desc': '緑金ツートーン · Material 緑色階',
@@ -1468,7 +1556,8 @@ function boot() {
   const sceneEl = $('scene'), sceneCustomEl = $('sceneCustom');
   const bgThumbEl = $('bgThumb'), bgPickBtn = $('bgPickBtn'), bgPickIcon = $('bgPickIcon'),
         bgPreviewEl = $('bgPreview'), bgPickText = $('bgPickText'), bgFileNameEl = $('bgFileName'),
-        bgFileEl = $('bgFile'), bgErrorEl = $('bgError');
+        bgFileEl = $('bgFile'), bgErrorEl = $('bgError'),
+        bgBlurRow = $('bgBlurRow'), bgBlurRange = $('bgBlurRange'), bgBlurValue = $('bgBlurValue');
   const scrimEl = $('scrim'), dialogTitle = $('dialogTitle'), dialogText = $('dialogText'),
         dialogScore = $('dialogScore'), dialogAgain = $('dialogAgain'), dialogContinue = $('dialogContinue');
 
@@ -2680,6 +2769,7 @@ function boot() {
      · 仍找不到就回退到「开」，并把分段按钮移回「开」
      ============================================================ */
   const BG_KEY = 'md2048-bg', BG_URL_KEY = 'md2048-bg-url', BG_NAME_KEY = 'md2048-bg-name';
+  const BG_BLUR_KEY = 'md2048-bg-blur', BG_BLUR_MAX = 40;
   const bgSegs = Array.from(document.querySelectorAll('.segment[data-bg-option]'));
   let bgUrl = '', bgObjectUrl = '', bgSeq = 0;
 
@@ -2692,6 +2782,23 @@ function boot() {
       localStorage.removeItem(BG_NAME_KEY);
     } catch (e) {}
   }
+  /* 毛玻璃模糊度：0 保持原图清晰，向上加大磨砂感；持久化并同步滑块外观 */
+  function readBgBlur() {
+    let v = 0;
+    try { v = parseInt(localStorage.getItem(BG_BLUR_KEY) || '0', 10); } catch (e) {}
+    if (!(v >= 0)) v = 0;
+    return Math.min(BG_BLUR_MAX, v);
+  }
+  function paintBgBlur(v, persist) {
+    const blur = Math.min(BG_BLUR_MAX, Math.max(0, parseInt(v, 10) || 0));
+    document.documentElement.style.setProperty('--scene-custom-filter',
+      blur > 0 ? 'blur(' + blur + 'px) saturate(1.1)' : 'none');
+    bgBlurRange.value = String(blur);
+    bgBlurRange.style.setProperty('--bg-blur-fill', (blur / BG_BLUR_MAX * 100) + '%');
+    bgBlurRange.setAttribute('aria-valuetext', blur + ' px');
+    bgBlurValue.textContent = blur + ' px';
+    if (persist) saveBgPref(BG_BLUR_KEY, String(blur));
+  }
   function setBgMode(mode) {
     document.documentElement.setAttribute('data-bg', mode);
     let active = null;
@@ -2702,6 +2809,7 @@ function boot() {
     }
     placeThumb(bgThumbEl, active);
     bgPickBtn.hidden = mode !== 'custom';
+    bgBlurRow.hidden = mode !== 'custom';
   }
   function showBgError(show) { bgErrorEl.hidden = !show; }
   function paintBg(url, name) {
@@ -2777,6 +2885,8 @@ function boot() {
   bgSegs.forEach(seg => {
     seg.addEventListener('click', () => chooseBgMode(seg.dataset.bgOption));
   });
+  bgBlurRange.addEventListener('input', () => paintBgBlur(bgBlurRange.value, false));
+  bgBlurRange.addEventListener('change', () => paintBgBlur(bgBlurRange.value, true));
   bgPickBtn.addEventListener('click', () => bgFileEl.click());
   bgFileEl.addEventListener('change', () => {
     const file = bgFileEl.files && bgFileEl.files[0];
@@ -2802,6 +2912,7 @@ function boot() {
   });
 
   /* 启动恢复：验证保存的地址；失效时先试同名文件，再回退「开」 */
+  paintBgBlur(readBgBlur(), false);
   (function initBg() {
     const pref = readBgPref();
     if (pref.mode !== 'custom') { setBgMode(pref.mode); return; }
