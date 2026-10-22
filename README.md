@@ -21,6 +21,7 @@
 -   **键盘操作**：方向键或 `W` `A` `S` `D`
 -   **触摸与鼠标拖拽**：跟手移动、挤压形变与边缘回弹动画
 -   **撤销**：最多回退最近 20 步，方块原路返回、合并块分裂还原
+-   **进度自动保存**：关闭或刷新页面后继续上一局，棋盘、分数与撤销记录都会保留
 -   **终局破碎**：游戏结束点「再来一局」时，整盘方块炸成碎片后开新局
 -   **达成 2048 后可继续**挑战更高分，最高分保存在本地
 -   **响应式布局**，适配手机安全区，支持全屏模式
@@ -59,7 +60,7 @@
 -   游戏核心 `GameCore` 为纯函数实现，负责滑动、合并、计分与状态判断。
 -   内嵌了新宋体（NSimSun）子集约 21KB，保证不同平台的中文字形一致；两张明暗背景图内嵌于 CSS 中（合计约 3.2MB），因此 `index.html` 约 4.4MB，首次加载后由浏览器缓存。
 -   动画基于 `requestAnimationFrame` 与 Pointer Events，包含拖拽跟手、方块挤压和边缘弹簧回弹。
--   仅使用 `localStorage` 保存最高分与界面偏好（`md2048-best`、`md2048-theme`、`md2048-palette`、`md2048-lang`、`md2048-bg`、`md2048-bg-url`、`md2048-bg-name`），不会上传任何数据。
+-   仅使用 `localStorage` 保存最高分、当前进度与界面偏好（`md2048-best`、`md2048-save`、`md2048-theme`、`md2048-palette`、`md2048-lang`、`md2048-bg`、`md2048-bg-url`、`md2048-bg-name`），不会上传任何数据。
 -   自定义背景图片只在运行时按 URL 引用（object URL，刷新后先尝试与 HTML 同目录的原文件名），不会写入 HTML；地址失效时自动回退到默认背景。
 
 ## 浏览器支持
@@ -68,7 +69,7 @@
 
 ## English
 
-A single-file 2048 game with a Material Design 3 look. No dependencies, no build step, fully offline. It features two color palettes, light/dark themes, Chinese/English/Japanese UI, keyboard and pointer-drag controls, up to 20 undo steps, and a locally stored best score.
+A single-file 2048 game with a Material Design 3 look. No dependencies, no build step, fully offline. It features two color palettes, light/dark themes, Chinese/English/Japanese UI, keyboard and pointer-drag controls, up to 20 undo steps, automatic progress saving across reloads, and a locally stored best score.
 
 Deploy with GitHub Pages by setting the branch to `main` and the folder to `/ (root)`.
 

@@ -1360,6 +1360,11 @@ function boot() {
   let busy = false, over = false, winShown = false;
   let snackTimer = null;
 
+  /* 当前进度存档：棋盘、分数、终局/达成状态、撤销栈与方块身份。
+     刷新或重新打开页面时恢复，点「新游戏」时覆盖。 */
+  const SAVE_KEY = 'md2048-save';
+  const SAVE_VERSION = 1;
+
   /* ---------- 语言切换（segmented 滑块） ---------- */
   const langThumbEl = $('langThumb');
   /* 高亮滑块定位（offsetLeft 相对 .segmented 容器） */
@@ -1435,21 +1440,154 @@ function boot() {
     }
     return tl;
   }
-  /* 按数字棋盘重建整个方块层（撤销 / 新游戏 / 降级路径） */
-  function rebuild(withSpawn) {
+  /* 按数字棋盘重建整个方块层（撤销 / 新游戏 / 降级路径）。
+     ids 可选：恢复存档时沿用方块身份，刷新后仍能播放「原路返回」的撤回动画 */
+  function rebuild(withSpawn, ids) {
     tiles = [];
     tileGrid = new Array(16).fill(null);
     tilesEl.innerHTML = '';
     let n = 0;
     for (let i = 0; i < 16; i++) {
       if (!grid[i]) continue;
-      makeTile(Math.floor(i / GameCore.N), i % GameCore.N, grid[i],
+      const tl = makeTile(Math.floor(i / GameCore.N), i % GameCore.N, grid[i],
         withSpawn ? Math.min(140, n++ * 70) : false);
+      if (ids && ids[i] && ids[i] !== tl.id) {
+        tl.id = ids[i];
+        if (tl.id > TID) TID = tl.id;
+      }
     }
   }
   /* 尺寸变化后把静止方块贴回实测格子原点（translate 用的是 px，必须重算） */
   function repositionAll() {
     for (const tl of tiles) { tl.el.style.transition = 'none'; settleAt(tl); }
+  }
+
+  /* ---------- 进度存档 ---------- */
+  function saveState() {
+    if (undoing) return;                 /* 撤回动画中：等落定后再存完整状态 */
+    try {
+      /* 逐格记录方块身份，恢复后撤销栈里的 id 才能与 DOM 方块对应上 */
+      const ids = new Array(16).fill(0);
+      for (const tl of tiles) ids[tl.r * GameCore.N + tl.c] = tl.id;
+      localStorage.setItem(SAVE_KEY, JSON.stringify({
+        v: SAVE_VERSION,
+        grid: grid.slice(),
+        score: score,
+        winShown: winShown,
+        over: over,
+        tid: TID,
+        ids: ids,
+        undo: undoStack.map(s => ({
+          grid: s.grid.slice(),
+          score: s.score,
+          view: s.view.map(v => [v.id, v.r, v.c, v.v]),
+          merges: s.merges.map(p => [p[0], p[1]]),
+        })),
+      }));
+    } catch (e) {}
+  }
+  function isGrid(g) {
+    if (!Array.isArray(g) || g.length !== 16) return false;
+    for (const v of g) {
+      if (!Number.isInteger(v) || v < 0) return false;
+      if (v !== 0 && (v < 2 || v > 1073741824 || (v & (v - 1)) !== 0)) return false;
+    }
+    return true;
+  }
+  function isViewItem(v) {
+    return Array.isArray(v) && v.length === 4 &&
+      Number.isInteger(v[0]) && v[0] > 0 &&
+      Number.isInteger(v[1]) && v[1] >= 0 && v[1] < GameCore.N &&
+      Number.isInteger(v[2]) && v[2] >= 0 && v[2] < GameCore.N &&
+      Number.isInteger(v[3]) && v[3] >= 2 && v[3] <= 1073741824 && (v[3] & (v[3] - 1)) === 0;
+  }
+  function loadState() {
+    let raw = null;
+    try { raw = localStorage.getItem(SAVE_KEY); } catch (e) { return null; }
+    if (!raw) return null;
+    let d = null;
+    try { d = JSON.parse(raw); } catch (e) { return null; }
+    if (!d || d.v !== SAVE_VERSION || !isGrid(d.grid)) return null;
+
+    /* 方块身份必须与棋盘逐格对应；不自洽时只恢复棋盘与分数，不恢复撤销栈，
+       避免新生成的 id 与旧快照撞号后撤回动画错位 */
+    let ids = null;
+    if (Array.isArray(d.ids) && d.ids.length === 16) {
+      const seen = new Set();
+      let ok = true;
+      for (let i = 0; i < 16; i++) {
+        const id = d.ids[i];
+        if (!d.grid[i]) {
+          if (id !== 0) { ok = false; break; }
+        } else if (!Number.isInteger(id) || id <= 0 || seen.has(id)) {
+          ok = false; break;
+        } else seen.add(id);
+      }
+      if (ok) ids = d.ids.slice();
+    }
+
+    const undo = [];
+    if (ids && Array.isArray(d.undo)) {
+      for (const s of d.undo.slice(-20)) {
+        if (!s || !isGrid(s.grid) || !Number.isInteger(s.score) || s.score < 0) continue;
+        if (!Array.isArray(s.view) || !s.view.every(isViewItem)) continue;
+        if (!Array.isArray(s.merges) || !s.merges.every(p =>
+          Array.isArray(p) && p.length === 2 && Number.isInteger(p[0]) && Number.isInteger(p[1]))) continue;
+        const seen = new Set();
+        let unique = true;
+        for (const v of s.view) {
+          if (seen.has(v[0])) { unique = false; break; }
+          seen.add(v[0]);
+        }
+        if (!unique) continue;
+        undo.push({
+          grid: s.grid.slice(),
+          score: s.score,
+          view: s.view.map(v => ({ id: v[0], r: v[1], c: v[2], v: v[3] })),
+          merges: s.merges.map(p => [p[0], p[1]]),
+        });
+      }
+    }
+
+    return {
+      grid: d.grid.slice(),
+      score: Number.isInteger(d.score) && d.score >= 0 ? d.score : 0,
+      winShown: d.winShown === true,
+      over: d.over === true,
+      tid: Number.isInteger(d.tid) && d.tid > 0 ? d.tid : 0,
+      ids: ids,
+      undo: undo,
+    };
+  }
+  function restoreGame() {
+    const saved = loadState();
+    if (!saved) { newGame(); return; }
+
+    grid = saved.grid;
+    score = saved.score;
+    winShown = saved.winShown;
+    over = saved.over;
+    undoStack = saved.undo;
+    if (score > best) {
+      best = score;
+      try { localStorage.setItem('md2048-best', String(best)); } catch (e) {}
+    }
+    rebuild(false, saved.ids);
+    /* 避免之后新生成的 id 与存档中撤销快照的 id 撞号 */
+    let tid = saved.tid;
+    for (const s of undoStack) for (const v of s.view) if (v.id > tid) tid = v.id;
+    if (tid > TID) TID = tid;
+    updateHUD();
+
+    if (over || !GameCore.canMove(grid)) {
+      over = true;
+      saveState();
+      setTimeout(() => showDialog('dialog.over.title', 'dialog.over.text', false), 260);
+    } else if (!winShown && GameCore.hasWon(grid)) {
+      winShown = true;
+      saveState();
+      setTimeout(() => showDialog('dialog.win.title', 'dialog.win.text', true), 260);
+    }
   }
 
   /* ---------- 计分 ---------- */
@@ -1822,6 +1960,7 @@ function boot() {
     if (!appliedScore) updateHUD(prevScore);    /* 合并局的分数/最高分已在合并瞬间刷新 */
     busy = false;
     checkEnd();
+    saveState();
     return true;
   }
   /* 降级路径：不播动画，直接按最终棋盘重建方块层（视图与规则层必须同步） */
@@ -1833,6 +1972,7 @@ function boot() {
     updateHUD(prevScore);
     busy = false;
     checkEnd();
+    saveState();
     return true;
   }
   function checkEnd() {
@@ -1990,6 +2130,7 @@ function boot() {
       rebuild(false);
       updateHUD();
       snack(t('snack.undo'));
+      saveState();
       return;
     }
 
@@ -2003,6 +2144,7 @@ function boot() {
       rebuild(false);
       updateHUD();
       snack(t('snack.undo'));
+      saveState();
       return;
     }
 
@@ -2103,6 +2245,7 @@ function boot() {
       busy = false;
       undoBtn.disabled = undoStack.length === 0;
       undoTimers = [];
+      saveState();
     }, RETURN + 100));
   }
 
@@ -2130,6 +2273,7 @@ function boot() {
       boardEl.classList.add('regen');
     }
     snack(t('snack.newGame'));
+    saveState();
   }
 
   /* ---------- 对话框 ---------- */
@@ -2502,6 +2646,13 @@ function boot() {
     restoreStoredBg(pref.url, pref.name, ++bgSeq);
   })();
 
+  /* 关闭/刷新时若这一手还没播完，先结算再落盘；撤回收尾前不写半成品 */
+  window.addEventListener('pagehide', () => {
+    if (undoing) return;
+    if (busy && fxRec) { try { flushMove(); } catch (e) {} }
+    saveState();
+  });
+
   /* ---------- 启动 ---------- */
   /* 滑块初始定位（无动画） */
   function placeThumbNoAnim(thumb, sel) {
@@ -2525,7 +2676,7 @@ function boot() {
       if (!busy && !drag) repositionAll();
     });
   });
-  newGame();
+  restoreGame();
 }
 
 if (typeof document !== 'undefined' && document.getElementById) {
