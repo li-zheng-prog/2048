@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-palette="guofeng" data-bg="on">
+<html lang="zh-CN" data-palette="guofeng" data-bg="on" data-tablet="off">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -25,6 +25,10 @@
   var bg = null;
   try { bg = localStorage.getItem('md2048-bg'); } catch (e) {}
   document.documentElement.setAttribute('data-bg', (bg === 'off' || bg === 'custom') ? bg : 'on');
+  /* 平板模式预置：开启时首帧就停靠到右侧，避免先横排再跳过去 */
+  var tab = null;
+  try { tab = localStorage.getItem('md2048-tablet'); } catch (e) {}
+  document.documentElement.setAttribute('data-tablet', tab === 'on' ? 'on' : 'off');
 })();
 </script>
 <style>
@@ -335,7 +339,9 @@ html[data-bg="off"] .scene { opacity: 0; }
 }
 .icon-btn svg { width: 20px; height: 20px; fill: currentColor; }
 /* 撤销图标：圆弧走线稿、箭头填充；24px 光学尺寸让圆环与齿轮视觉等大 */
-#undoBtn svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+#undoBtn svg, .new-game-icon { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+/* 平板模式的新游戏图标：撤销图标的水平镜像（箭头朝右）；横排时仍显示文字 */
+.new-game-icon { display: none; }
 .icon-btn:disabled { opacity: .38; cursor: default; }
 .icon-btn:disabled:hover { background: var(--md-sys-color-surface-container); }
 .segmented {
@@ -777,6 +783,73 @@ html[data-bg="off"] .scene { opacity: 0; }
   color: var(--md-sys-color-on-surface-variant);
 }
 .settings .segmented { margin-bottom: 6px; }
+/* ---------- 平板模式开关 ---------- */
+.setting-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 10px;
+}
+.setting-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  cursor: pointer;
+}
+.setting-title {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: .01em;
+  color: var(--md-sys-color-on-surface);
+}
+.setting-desc {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.switch {
+  position: relative;
+  flex: none;
+  width: 52px;
+  height: 32px;
+  padding: 0;
+  border: 2px solid var(--md-sys-color-outline);
+  border-radius: 16px;
+  background: var(--md-sys-color-surface-container-highest);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color .2s var(--md-sys-easing), border-color .2s var(--md-sys-easing),
+              box-shadow .2s var(--md-sys-easing);
+}
+.switch:hover { box-shadow: var(--md-sys-elevation-1); }
+.switch-thumb {
+  position: absolute;
+  top: 50%;
+  left: 4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--md-sys-color-outline);
+  transform: translateY(-50%);
+  transition: left .22s var(--md-sys-easing), width .22s var(--md-sys-easing),
+              height .22s var(--md-sys-easing), background-color .2s var(--md-sys-easing);
+}
+.switch[aria-checked="true"] {
+  border-color: var(--md-sys-color-primary);
+  background: var(--md-sys-color-primary);
+}
+.switch[aria-checked="true"] .switch-thumb {
+  left: 22px;
+  width: 24px;
+  height: 24px;
+  background: var(--md-sys-color-on-primary);
+}
+.switch:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 3px;
+}
 /* ---------- 背景上传框：只在「自定义」下出现 ---------- */
 .bg-pick {
   display: flex;
@@ -897,6 +970,56 @@ html[data-bg="off"] .scene { opacity: 0; }
 .fab.is-full .fab-enter { display: none; }
 .fab.is-full .fab-exit { display: inline; }
 
+/* ---------- 平板模式：三个操作按钮停靠屏幕右端，纵向排列 ----------
+   按钮统一为 69px 圆形（全屏按钮 46px 的 1.5 倍），等宽等高保证圆心同轴；
+   只在有足够横向空间时停靠，窄屏保持顶部横排，避免按钮压住棋盘 */
+@media (min-width: 700px) {
+  html[data-tablet="on"] .actions {
+    position: fixed;
+    top: 50%;
+    right: calc(clamp(14px, 3vw, 28px) + env(safe-area-inset-right, 0px));
+    z-index: 4;                  /* 高于 .app(1)，低于弹窗遮罩(50) */
+    width: 69px;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0;
+    transform: translateY(-50%);
+  }
+  html[data-tablet="on"] .actions > .icon-btn,
+  html[data-tablet="on"] #newGameBtn {
+    width: 69px;
+    height: 69px;
+    flex: none;
+    border-radius: 50%;
+  }
+  html[data-tablet="on"] #settingsBtn svg {
+    width: 30px;
+    height: 30px;
+  }
+  html[data-tablet="on"] #undoBtn svg,
+  html[data-tablet="on"] .new-game-icon {
+    width: 36px;
+    height: 36px;
+    stroke-width: 2.85;
+  }
+  /* 新游戏收成绿色圆形图标按钮，与撤销按钮成镜像一对 */
+  html[data-tablet="on"] #newGameBtn { padding: 0; }
+  html[data-tablet="on"] #newGameBtn .new-game-label { display: none; }
+  html[data-tablet="on"] .new-game-icon { display: block; }
+  /* 全屏按钮与上方三个按钮同尺寸、同圆心竖线（保留右下角位置） */
+  html[data-tablet="on"] .fab {
+    width: 69px;
+    height: 69px;
+    right: calc(clamp(14px, 3vw, 28px) + env(safe-area-inset-right, 0px));
+    border-radius: 50%;
+  }
+  html[data-tablet="on"] .fab svg {
+    width: 32px;
+    height: 32px;
+    stroke-width: 2.9;
+  }
+}
+
 /* ---------- 小屏适配 ---------- */
 @media (max-width: 420px) {
   .score-row { gap: 8px; }
@@ -943,7 +1066,15 @@ html[data-bg="off"] .scene { opacity: 0; }
     <button class="icon-btn" id="settingsBtn" type="button" aria-label="设置" title="设置" data-i18n-aria="settings.aria" data-i18n-title="settings.aria">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13a7.8 7.8 0 0 0 .1-1 7.8 7.8 0 0 0-.1-1l2.1-1.6a.5.5 0 0 0 .1-.6l-2-3.5a.5.5 0 0 0-.6-.2l-2.5 1a7.6 7.6 0 0 0-1.7-1l-.4-2.6a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 0-.5.5l-.4 2.6a7.6 7.6 0 0 0-1.7 1l-2.5-1a.5.5 0 0 0-.6.2l-2 3.5a.5.5 0 0 0 .1.6L4.5 11a7.8 7.8 0 0 0-.1 1 7.8 7.8 0 0 0 .1 1l-2.1 1.6a.5.5 0 0 0-.1.6l2 3.5c.1.2.4.3.6.2l2.5-1a7.6 7.6 0 0 0 1.7 1l.4 2.6c0 .3.2.5.5.5h4c.3 0 .5-.2.5-.5l.4-2.6a7.6 7.6 0 0 0 1.7-1l2.5 1c.2.1.5 0 .6-.2l2-3.5a.5.5 0 0 0-.1-.6L19.4 13zM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5z"/></svg>
     </button>
-    <button class="btn filled" id="newGameBtn" type="button" data-i18n="btn.new">新游戏</button>
+    <button class="btn filled" id="newGameBtn" type="button" aria-label="新游戏" title="新游戏" data-i18n-aria="btn.new" data-i18n-title="btn.new">
+      <span class="new-game-label" data-i18n="btn.new">新游戏</span>
+      <svg class="new-game-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <g transform="translate(24 0) scale(-1 1)">
+          <path d="M4.57 15.47A8.2 8.2 0 1 0 7.3 5.28"/>
+          <path d="M5.58 2.83 2.38 8.72 9.02 7.74Z" fill="currentColor" stroke="none"/>
+        </g>
+      </svg>
+    </button>
     <button class="icon-btn" id="undoBtn" type="button" disabled aria-label="撤销" title="撤销" data-i18n-aria="btn.undo" data-i18n-title="btn.undo">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.57 15.47A8.2 8.2 0 1 0 7.3 5.28"/><path d="M5.58 2.83 2.38 8.72 9.02 7.74Z" fill="currentColor" stroke="none"/></svg>
     </button>
@@ -1040,6 +1171,17 @@ html[data-bg="off"] .scene { opacity: 0; }
       <button class="segment active" data-lang="zh" type="button">中文</button>
       <button class="segment" data-lang="en" type="button">English</button>
       <button class="segment" data-lang="ja" type="button">日本語</button>
+    </div>
+    <span class="section-label" data-i18n="settings.layout">布局</span>
+    <div class="setting-row">
+      <label class="setting-copy" for="tabletToggle">
+        <span class="setting-title" id="tabletLabel" data-i18n="settings.tablet">平板模式</span>
+        <span class="setting-desc" id="tabletDesc" data-i18n="settings.tablet.desc">操作按钮停靠屏幕右端，纵向排列；窄屏自动回退横排</span>
+      </label>
+      <button class="switch" id="tabletToggle" type="button" role="switch" aria-checked="false"
+              aria-labelledby="tabletLabel" aria-describedby="tabletDesc">
+        <span class="switch-thumb" aria-hidden="true"></span>
+      </button>
     </div>
     <div class="dialog-actions">
       <button class="btn text" id="settingsClose" type="button" data-i18n="settings.close">关闭</button>
@@ -1183,6 +1325,8 @@ const I18N = {
     'settings.title': '设置', 'settings.palette': '配色方案', 'settings.theme': '主题',
     'settings.language': '语言', 'settings.close': '关闭',
     'settings.background': '背景',
+    'settings.layout': '布局', 'settings.tablet': '平板模式',
+    'settings.tablet.desc': '操作按钮停靠屏幕右端，纵向排列；窄屏自动回退横排',
     'bg.off': '关', 'bg.on': '开', 'bg.custom': '自定义',
     'bg.pick': '选择图片', 'bg.change': '更换图片',
     'bg.error': '图片无法加载，已恢复默认背景',
@@ -1210,6 +1354,8 @@ const I18N = {
     'settings.title': 'Settings', 'settings.palette': 'Color Scheme', 'settings.theme': 'Theme',
     'settings.language': 'Language', 'settings.close': 'Close',
     'settings.background': 'Background',
+    'settings.layout': 'Layout', 'settings.tablet': 'Tablet Mode',
+    'settings.tablet.desc': 'Dock the action buttons to the right edge in a vertical stack; narrow screens keep the top row',
     'bg.off': 'Off', 'bg.on': 'On', 'bg.custom': 'Custom',
     'bg.pick': 'Choose Image', 'bg.change': 'Change Image',
     'bg.error': 'Image unavailable — reverted to the default background',
@@ -1237,6 +1383,8 @@ const I18N = {
     'settings.title': '設定', 'settings.palette': '配色', 'settings.theme': 'テーマ',
     'settings.language': '言語', 'settings.close': '閉じる',
     'settings.background': '背景',
+    'settings.layout': 'レイアウト', 'settings.tablet': 'タブレットモード',
+    'settings.tablet.desc': '操作ボタンを画面右端に縦並びで配置（狭い画面では上部の横並び）',
     'bg.off': 'オフ', 'bg.on': 'オン', 'bg.custom': 'カスタム',
     'bg.pick': '画像を選択', 'bg.change': '画像を変更',
     'bg.error': '画像を読み込めないため、既定の背景に戻しました',
@@ -2439,6 +2587,22 @@ function boot() {
       o.classList.toggle('active', o.dataset.palette === cur);
     }
   })();
+
+  /* ---------- 平板模式（操作按钮停靠屏幕右端） ----------
+     首屏属性已由 <head> 里的预置脚本恢复；这里只同步开关状态并处理切换 */
+  const tabletToggle = $('tabletToggle');
+  const TABLET_KEY = 'md2048-tablet';
+  let tabletOn = document.documentElement.getAttribute('data-tablet') === 'on';
+  function syncTabletUI() {
+    document.documentElement.setAttribute('data-tablet', tabletOn ? 'on' : 'off');
+    tabletToggle.setAttribute('aria-checked', tabletOn ? 'true' : 'false');
+  }
+  tabletToggle.addEventListener('click', () => {
+    tabletOn = !tabletOn;
+    try { localStorage.setItem(TABLET_KEY, tabletOn ? 'on' : 'off'); } catch (e) {}
+    syncTabletUI();
+  });
+  syncTabletUI();
 
   /* ---------- 全屏（右下角悬浮按钮） ---------- */
   const fsBtn = $('fullscreenBtn');
