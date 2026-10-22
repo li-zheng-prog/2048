@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-palette="guofeng">
+<html lang="zh-CN" data-palette="guofeng" data-bg="on">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -21,6 +21,10 @@
   var l = null;
   try { l = localStorage.getItem('md2048-lang'); } catch (e) {}
   document.documentElement.setAttribute('data-lang', (l === 'en' || l === 'ja') ? l : 'zh');
+  /* 背景模式预置：关掉时首帧就不出现插画，避免加载后再闪一下 */
+  var bg = null;
+  try { bg = localStorage.getItem('md2048-bg'); } catch (e) {}
+  document.documentElement.setAttribute('data-bg', (bg === 'off' || bg === 'custom') ? bg : 'on');
 })();
 </script>
 <style>
@@ -137,6 +141,7 @@ body {
   overflow: hidden;
   pointer-events: none;
   background: var(--md-sys-color-surface);
+  transition: opacity .35s var(--md-sys-easing);
 }
 .scene-layer {
   position: absolute;
@@ -161,6 +166,30 @@ body {
 [data-theme="dark"] .scene-glass {
   background: color-mix(in srgb, var(--md-sys-color-surface) 54%, transparent);
 }
+/* ---------- 自定义背景层：插画之上、毛玻璃之下 ----------
+   .custom-ready 只在图片确认加载成功后加上；未就绪时默认插画保持可见，
+   避免自定义地址失效时先黑一下再回退 */
+.scene-custom {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity .45s var(--md-sys-easing);
+}
+.scene.custom-ready .scene-layer { opacity: 0; }
+.scene.custom-ready .scene-custom { opacity: 1; }
+/* 自定义背景不压毛玻璃，只留一层轻遮罩保证文字可读 */
+.scene.custom-ready .scene-glass {
+  background: color-mix(in srgb, var(--md-sys-color-surface) 24%, transparent);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+[data-theme="dark"] .scene.custom-ready .scene-glass {
+  background: rgba(0, 0, 0, .34);
+}
+html[data-bg="off"] .scene { opacity: 0; }
 
 .app {
   position: relative;
@@ -555,6 +584,30 @@ body {
 }
 .fx.spawn { animation: spawn .42s cubic-bezier(.3,1.1,.45,1) backwards; }
 
+/* ---------- 终局破碎：结束后点「再来一局」，整个盘面的方块炸成碎片 ---------- */
+.shatter-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+.shatter-shard {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.shatter-shard > .inner {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.shatter-flash {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(255,255,255,.95) 0, rgba(255,255,255,0) 68%);
+}
+
 /* ===== 国风配色（默认；浅色/深色通用）：毛绿→青矾绿→深绿→苍绿→群青→湘蓝→螺甸紫→山黎豆红→野菊紫→栗棕→流黄 ===== */
 .tile-2    { background: #66C18C; color: #0C2E1E; }
 .tile-4    { background: #2C9678; color: #0A2E20; }
@@ -724,6 +777,70 @@ body {
   color: var(--md-sys-color-on-surface-variant);
 }
 .settings .segmented { margin-bottom: 6px; }
+/* ---------- 背景上传框：只在「自定义」下出现 ---------- */
+.bg-pick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin: 0 0 6px;
+  padding: 11px 14px;
+  border: 1.5px dashed var(--md-sys-color-outline);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--md-sys-color-surface-container) 62%, transparent);
+  color: var(--md-sys-color-on-surface-variant);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: .01em;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color .2s var(--md-sys-easing), border-color .2s var(--md-sys-easing);
+}
+.bg-pick:hover {
+  border-color: var(--md-sys-color-primary);
+  background: color-mix(in srgb, var(--md-sys-color-primary) 7%, var(--md-sys-color-surface-container));
+}
+.bg-pick:active { transform: scale(.99); }
+.bg-pick[hidden] { display: none; }
+.bg-pick-icon {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.bg-pick-icon.is-hidden { display: none; }
+.bg-pick-preview {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  object-fit: cover;
+  border-radius: 9px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .10);
+}
+.bg-pick-preview[hidden] { display: none; }
+.bg-pick-text { flex: none; }
+.bg-pick-name {
+  margin-left: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 400;
+  opacity: .75;
+}
+.bg-error {
+  margin: 0 0 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--md-sys-color-error);
+}
+.bg-error[hidden] { display: none; }
 .dialog-actions {
   display: flex;
   justify-content: flex-end;
@@ -798,9 +915,10 @@ body {
 </style>
 </head>
 <body>
-<div class="scene" aria-hidden="true">
+<div class="scene" id="scene" aria-hidden="true">
   <div class="scene-layer scene-light"></div>
   <div class="scene-layer scene-dark"></div>
+  <div class="scene-custom" id="sceneCustom"></div>
   <div class="scene-glass"></div>
 </div>
 <div class="app">
@@ -897,6 +1015,25 @@ body {
       <button class="segment" data-theme-option="light" type="button"><span data-i18n="theme.light">浅色</span></button>
       <button class="segment" data-theme-option="dark" type="button"><span data-i18n="theme.dark">深色</span></button>
     </div>
+    <span class="section-label" data-i18n="settings.background">背景</span>
+    <div class="segmented bg-seg" role="group" aria-label="背景" data-i18n-aria="settings.background">
+      <span class="segment-thumb" id="bgThumb" aria-hidden="true"></span>
+      <button class="segment" data-bg-option="off" type="button"><span data-i18n="bg.off">关</span></button>
+      <button class="segment active" data-bg-option="on" type="button"><span data-i18n="bg.on">开</span></button>
+      <button class="segment" data-bg-option="custom" type="button"><span data-i18n="bg.custom">自定义</span></button>
+    </div>
+    <button class="bg-pick" id="bgPickBtn" type="button" hidden>
+      <svg class="bg-pick-icon" id="bgPickIcon" viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="16" rx="3"/>
+        <circle cx="8.5" cy="9.5" r="1.6"/>
+        <path d="M4 17.5 9.5 12l3.2 3.2 2.3-2.3L20 17.5"/>
+      </svg>
+      <img class="bg-pick-preview" id="bgPreview" alt="" hidden>
+      <span class="bg-pick-text" id="bgPickText" data-i18n="bg.pick">选择图片</span>
+      <small class="bg-pick-name" id="bgFileName"></small>
+    </button>
+    <input type="file" id="bgFile" accept="image/*" hidden>
+    <p class="bg-error" id="bgError" role="status" data-i18n="bg.error" hidden>图片无法加载，已恢复默认背景</p>
     <span class="section-label" data-i18n="settings.language">语言</span>
     <div class="segmented lang-seg" role="group" aria-label="Language">
       <span class="segment-thumb" id="langThumb" aria-hidden="true"></span>
@@ -1045,6 +1182,10 @@ const I18N = {
     'btn.new': '新游戏', 'btn.undo': '撤销',
     'settings.title': '设置', 'settings.palette': '配色方案', 'settings.theme': '主题',
     'settings.language': '语言', 'settings.close': '关闭',
+    'settings.background': '背景',
+    'bg.off': '关', 'bg.on': '开', 'bg.custom': '自定义',
+    'bg.pick': '选择图片', 'bg.change': '更换图片',
+    'bg.error': '图片无法加载，已恢复默认背景',
     'theme.light': '浅色', 'theme.dark': '深色', 'theme.system': '跟随系统',
     'palette.guofeng': '国风配色', 'palette.guofeng.desc': '毛绿 · 湘蓝 · 流黄定制色板',
     'palette.classic': '经典配色', 'palette.classic.desc': '绿金双阶 · Material 绿色阶',
@@ -1068,6 +1209,10 @@ const I18N = {
     'btn.new': 'New Game', 'btn.undo': 'Undo',
     'settings.title': 'Settings', 'settings.palette': 'Color Scheme', 'settings.theme': 'Theme',
     'settings.language': 'Language', 'settings.close': 'Close',
+    'settings.background': 'Background',
+    'bg.off': 'Off', 'bg.on': 'On', 'bg.custom': 'Custom',
+    'bg.pick': 'Choose Image', 'bg.change': 'Change Image',
+    'bg.error': 'Image unavailable — reverted to the default background',
     'theme.light': 'Light', 'theme.dark': 'Dark', 'theme.system': 'System',
     'palette.guofeng': 'Guofeng Palette', 'palette.guofeng.desc': 'Custom palette — maolu · xianglan · liuhuang',
     'palette.classic': 'Classic Palette', 'palette.classic.desc': 'Green-gold dual scale · Material green',
@@ -1091,6 +1236,10 @@ const I18N = {
     'btn.new': '新しいゲーム', 'btn.undo': '元に戻す',
     'settings.title': '設定', 'settings.palette': '配色', 'settings.theme': 'テーマ',
     'settings.language': '言語', 'settings.close': '閉じる',
+    'settings.background': '背景',
+    'bg.off': 'オフ', 'bg.on': 'オン', 'bg.custom': 'カスタム',
+    'bg.pick': '画像を選択', 'bg.change': '画像を変更',
+    'bg.error': '画像を読み込めないため、既定の背景に戻しました',
     'theme.light': 'ライト', 'theme.dark': 'ダーク', 'theme.system': 'システム',
     'palette.guofeng': '国風配色', 'palette.guofeng.desc': '毛緑・湘藍・流黄のカスタム色板',
     'palette.classic': 'クラシック配色', 'palette.classic.desc': '緑金ツートーン · Material 緑色階',
@@ -1145,6 +1294,7 @@ function boot() {
     /* 文字宽度变化后重新定位滑块 */
     placeThumbNoAnim(langThumbEl, '.segment[data-lang]');
     placeThumbNoAnim(themeThumbEl, '.segment[data-theme-option]');
+    placeThumbNoAnim(bgThumbEl, '.segment[data-bg-option]');
   }
   let langFadeTimer = null;
   function setLang(l) {
@@ -1167,6 +1317,10 @@ function boot() {
   const bestCardEl = $('bestCard'), bestLabelEl = $('bestLabel');
   const undoBtn = $('undoBtn'), newGameBtn = $('newGameBtn');
   const snackbarEl = $('snackbar');
+  const sceneEl = $('scene'), sceneCustomEl = $('sceneCustom');
+  const bgThumbEl = $('bgThumb'), bgPickBtn = $('bgPickBtn'), bgPickIcon = $('bgPickIcon'),
+        bgPreviewEl = $('bgPreview'), bgPickText = $('bgPickText'), bgFileNameEl = $('bgFileName'),
+        bgFileEl = $('bgFile'), bgErrorEl = $('bgError');
   const scrimEl = $('scrim'), dialogTitle = $('dialogTitle'), dialogText = $('dialogText'),
         dialogScore = $('dialogScore'), dialogAgain = $('dialogAgain'), dialogContinue = $('dialogContinue');
 
@@ -1193,8 +1347,11 @@ function boot() {
   /* 动效降级：reduced-motion 下不走弹簧、不做模糊，输入退回离散滑动 */
   const reduceMq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
   const reduced = () => !!(reduceMq && reduceMq.matches);
-  /* 节奏（与参考实现一致）：滑行 130ms 推过头 + 160ms 弹回，融合 220ms，消散 400ms */
+  /* 节奏（与参考实现一致）：滑行 130ms 推过头 + 160ms 弹回；
+     合并效果整体延后 100ms，融合 220ms、消散 400ms，620ms 后收尾 */
   const DUR_PUSH = 130, DUR_SETTLE = 160, DUR_FUSE = 220, DUR_VANISH = 400;
+  const MERGE_DELAY = 100;                       /* 合并动画相对滑行起点的延迟 */
+  const MERGE_TOTAL = MERGE_DELAY + DUR_VANISH + 120;   /* 620ms：消散完再留一点余量 */
   const MOVE_TOTAL = DUR_PUSH + DUR_SETTLE;
 
   let grid = GameCore.emptyGrid();
@@ -1254,8 +1411,10 @@ function boot() {
     inner.textContent = v;
     inner.setAttribute('aria-label', t('tile.aria', { v: v }));
   }
-  /* 新建常驻方块；spawnDelay 为假值时不带雾化入场动画 */
-  function makeTile(r, c, v, spawnDelay) {
+  /* 新建常驻方块；spawnDelay 为假值时不带雾化入场动画；
+     unregistered 用于撤回时临时生成的「分裂半块」，只进 DOM，不进 tiles/tileGrid */
+  let TID = 0;
+  function makeTile(r, c, v, spawnDelay, unregistered) {
     const el = document.createElement('div'), sqEl = document.createElement('div'),
           fxEl = document.createElement('div'), inner = document.createElement('div');
     el.className = 'tile';
@@ -1266,12 +1425,14 @@ function boot() {
     fxEl.addEventListener('animationend', () => fxEl.classList.remove('spawn'), { once: true });
     setFace(inner, v);
     sqEl.appendChild(fxEl); fxEl.appendChild(inner); el.appendChild(sqEl);
-    const tl = { r, c, v, el, sqEl, fxEl, inner, merged: false, sr: r, sc: c,
+    const tl = { id: ++TID, r, c, v, el, sqEl, fxEl, inner, merged: false, sr: r, sc: c,
                  sq: 0, sqv: 0, sqT: 0, sqAxis: 'x', sqOrigin: '50% 50%', sqDrawn: false, off: 0 };
     settleAt(tl);
     tilesEl.appendChild(el);
-    tileGrid[r * GameCore.N + c] = tl;
-    tiles.push(tl);
+    if (!unregistered) {
+      tileGrid[r * GameCore.N + c] = tl;
+      tiles.push(tl);
+    }
     return tl;
   }
   /* 按数字棋盘重建整个方块层（撤销 / 新游戏 / 降级路径） */
@@ -1476,6 +1637,7 @@ function boot() {
   /* ---------- 移动动画 ---------- */
   let fxRec = null;          /* 当前这一手尚未播完的收尾动作，可被下一次输入提前结算 */
   let vanishing = [];        /* 正在雾化消散的被吸收方块 */
+  let undoing = false, undoTimers = [], undoAnims = [];   /* 撤回动画状态 */
   const r3 = (v) => +v.toFixed(3);
 
   function clearVanishing() {
@@ -1489,6 +1651,14 @@ function boot() {
     fxRec = null;
     f.timers.forEach(clearTimeout);
     f.anims.forEach(a => { try { a.cancel(); } catch (e) {} });
+  }
+  /* 中止撤回动画（新游戏等）：清掉定时器与 WAAPI，恢复输入 */
+  function cancelUndo() {
+    for (const id of undoTimers) clearTimeout(id);
+    undoTimers = [];
+    for (const a of undoAnims) { try { a.cancel(); } catch (e) {} }
+    undoAnims = [];
+    if (undoing) { undoing = false; busy = false; }
   }
   /* 把上一手瞬间播完：结算合并、清掉残影、立即落定 */
   function flushMove() {
@@ -1514,12 +1684,20 @@ function boot() {
   }
 
   function performMove(dir) {
+    if (undoing) return false;             /* 撤回动画播放中：忽略新的移动 */
     if (busy) flushMove();                 /* 上一手没播完：先瞬间收尾，这一手立刻接管 */
     if (over || drag) return false;        /* 拖拽进行中：这一手归松手时结算，键盘不插手 */
     const res = GameCore.move(grid, dir);
     if (!res.moved) return false;          /* 无效移动：无反馈，保持安静 */
 
-    undoStack.push({ grid: grid.slice(), score });
+    /* 撤回快照：数字盘面之外，再记下每个方块的身份/位置/数值，
+       以及这一手发生的合并配对，供「原路返回 + 合并块分裂」动画使用 */
+    const snapshot = {
+      grid: grid.slice(), score,
+      view: tiles.map(tl => ({ id: tl.id, r: tl.r, c: tl.c, v: tl.v })),
+      merges: []
+    };
+    undoStack.push(snapshot);
     if (undoStack.length > 20) undoStack.shift();
     const prevScore = score;
     if (reduced()) return settleInstant(res, prevScore);
@@ -1549,6 +1727,7 @@ function boot() {
     const f = { timers: [], anims: [], applies: [], finished: false, finish: null };
     fxRec = f;
     busy = true;
+    let appliedScore = 0;
 
     for (const p of plan) {
       const tl = p.tl;
@@ -1560,6 +1739,7 @@ function boot() {
       }
     }
 
+    let mergedAny = false;
     const byTarget = new Map();
     for (const p of plan) {
       const k = p.target.row * GameCore.N + p.target.col;
@@ -1569,7 +1749,9 @@ function boot() {
     for (const list of byTarget.values()) {
       const se = list.find(p => p.merged), de = list.find(p => p.dead);
       if (!se || !de) continue;
+      mergedAny = true;
       const s = se.tl, a = de.tl;
+      snapshot.merges.push([s.id, a.id]);
       /* 起雾时刻 tc：反解滑行贝塞尔，取两者间距收到一格宽的那一瞬 */
       const pa = cellCenter(a.sr, a.sc), ps = cellCenter(s.sr, s.sc);
       const S0 = Math.max(Math.abs(pa[0] - ps[0]), Math.abs(pa[1] - ps[1]));
@@ -1580,7 +1762,7 @@ function boot() {
         { offset: r3(tc / DUR_FUSE), filter: 'blur(0px)', easing: 'ease-in' },
         { offset: r3(DUR_PUSH / DUR_FUSE), filter: 'blur(6px)', easing: 'ease-out' },
         { offset: 1, filter: 'blur(0px)' }
-      ], { duration: DUR_FUSE });
+      ], { duration: DUR_FUSE, delay: MERGE_DELAY });
       const anA = a.fxEl.animate([
         { offset: 0, filter: 'blur(0px)', opacity: 1 },
         { offset: r3(tc / DUR_VANISH), filter: 'blur(0px)', opacity: 1, easing: 'ease-in' },
@@ -1588,13 +1770,13 @@ function boot() {
         { offset: .55, filter: 'blur(0px)', opacity: .6 },
         { offset: .95, filter: 'blur(0px)', opacity: 0 },
         { offset: 1, filter: 'blur(0px)', opacity: 0 }
-      ], { duration: DUR_VANISH, fill: 'forwards' });
+      ], { duration: DUR_VANISH, delay: MERGE_DELAY, fill: 'forwards' });
       const anPop = s.inner.animate([
         { transform: 'scale(1)' },
         { transform: 'scale(.9)', offset: .28 },
         { transform: 'scale(1.07)', offset: .62 },
         { transform: 'scale(1)' }
-      ], { duration: 300, delay: tc });
+      ], { duration: 300, delay: MERGE_DELAY + tc });
       f.anims.push(anS, anA, anPop);
 
       /* 数字在模糊峰值处静默替换 —— 看不见跳变，只看见两块并成一块 */
@@ -1603,9 +1785,13 @@ function boot() {
         if (applied) return; applied = true;
         s.v *= 2;
         setFace(s.inner, s.v);
+        /* 计分与数字同帧变化：参考版在合并瞬间就加分，不必等整手收尾 */
+        score += s.v;
+        appliedScore += s.v;
+        updateHUD(prevScore);
       };
       f.applies.push(apply);
-      f.timers.push(setTimeout(apply, DUR_PUSH));
+      f.timers.push(setTimeout(apply, MERGE_DELAY));
 
       a.sq = 0; a.sqv = 0; a.sqT = 0;
       a.sqEl.style.transform = ''; a.sqEl.style.transformOrigin = '';
@@ -1614,7 +1800,7 @@ function boot() {
       vanishing.push({ el: a.el, timer: setTimeout(() => {
         a.el.remove();
         vanishing = vanishing.filter(x => x.el !== a.el);
-      }, DUR_VANISH + 40) });
+      }, MERGE_DELAY + DUR_VANISH + 10) });
     }
 
     f.finish = () => {
@@ -1622,18 +1808,18 @@ function boot() {
       f.finished = true;
       if (fxRec === f) fxRec = null;
       for (const fn of f.applies) fn();
-      finishTurn(res, prevScore);
+      finishTurn(res, prevScore, appliedScore);
     };
-    f.timers.push(setTimeout(() => { if (fxRec === f) f.finish(); }, MOVE_TOTAL));
+    f.timers.push(setTimeout(() => { if (fxRec === f) f.finish(); }, mergedAny ? MERGE_TOTAL : MOVE_TOTAL));
     return true;
   }
   /* 落定：写入规则层结果、生成新块、刷新分数与终局判定 */
-  function finishTurn(res, prevScore) {
+  function finishTurn(res, prevScore, appliedScore) {
     grid = res.grid;
-    score += res.score;                     /* res.score 是本次移动的增量 */
+    score += res.score - (appliedScore || 0);   /* 合并时已在 apply 里计过分，这里只补剩余 */
     const np = GameCore.addRandomTile(grid);
     if (np !== null) makeTile(Math.floor(np / GameCore.N), np % GameCore.N, grid[np], 0);
-    updateHUD(prevScore);
+    if (!appliedScore) updateHUD(prevScore);    /* 合并局的分数/最高分已在合并瞬间刷新 */
     busy = false;
     checkEnd();
     return true;
@@ -1660,19 +1846,271 @@ function boot() {
     }
   }
 
-  /* ---------- 撤销 ---------- */
+  /* ============================================================
+     终局破碎：结束对话框点「再来一局」时，整盘方块炸成碎片再开新局
+     · 方块被抖动的网格切成不规则碎片，约一半再沿对角线劈成三角
+     · 每块同时闪一圈白光；碎片沿「方块中心 → 碎片重心」飞散
+     · 越远离棋盘中心的方块起爆越晚，爆裂从中间荡开
+     ============================================================ */
+  const shatter = { layer: null, timers: [], anims: [], busy: false };
+  const rnd = (a, b) => a + Math.random() * (b - a);
+
+  /* 切碎一块方块：边界点钉死，碎片合起来与原方块严丝合缝 */
+  function shardPolys(w, h) {
+    const cols = Math.random() < .5 ? 3 : 4, rows = Math.random() < .5 ? 3 : 4, pts = [];
+    for (let j = 0; j <= rows; j++) {
+      pts[j] = [];
+      for (let i = 0; i <= cols; i++) {
+        const ex = (i === 0 || i === cols), ey = (j === 0 || j === rows);
+        pts[j][i] = [i / cols * w + (ex ? 0 : rnd(-.35, .35) * w / cols),
+                     j / rows * h + (ey ? 0 : rnd(-.35, .35) * h / rows)];
+      }
+    }
+    const out = [];
+    for (let j = 0; j < rows; j++) {
+      for (let i = 0; i < cols; i++) {
+        const a = pts[j][i], b = pts[j][i + 1], c = pts[j + 1][i + 1], d = pts[j + 1][i];
+        if (Math.random() < .45) {
+          if (Math.random() < .5) { out.push([a, b, c]); out.push([a, c, d]); }
+          else { out.push([a, b, d]); out.push([b, c, d]); }
+        } else out.push([a, b, c, d]);
+      }
+    }
+    return out;
+  }
+
+  function cancelShatter() {
+    for (const id of shatter.timers) clearTimeout(id);
+    shatter.timers = [];
+    for (const a of shatter.anims) { try { a.cancel(); } catch (e) {} }
+    shatter.anims = [];
+    if (shatter.layer) { shatter.layer.remove(); shatter.layer = null; }
+    shatter.busy = false;
+    boardEl.style.overflow = '';
+    for (const tl of tiles) tl.el.style.visibility = '';
+  }
+
+  function playShatter(onDone) {
+    if (reduced()) { if (onDone) onDone(); return; }
+    const layer = document.createElement('div');
+    layer.className = 'shatter-layer';
+    layer.setAttribute('aria-hidden', 'true');
+    tilesEl.appendChild(layer);
+    shatter.layer = layer;
+    shatter.busy = true;
+    boardEl.style.overflow = 'hidden';             /* 碎片只在棋盘内飞溅 */
+
+    const cw = cells[0].offsetWidth, ch = cells[0].offsetHeight;
+    const bx = tilesEl.clientWidth / 2, by = tilesEl.clientHeight / 2;
+    let end = 0;
+    shatter.anims.push(boardEl.animate([           /* 破碎瞬间整盘轻微震一下 */
+      { transform: 'translate(0,0)' },
+      { transform: 'translate(-3px,2px)', offset: .12 },
+      { transform: 'translate(4px,-3px)', offset: .27 },
+      { transform: 'translate(-3px,-2px)', offset: .44 },
+      { transform: 'translate(3px,2px)', offset: .62 },
+      { transform: 'translate(-2px,-1px)', offset: .8 },
+      { transform: 'translate(0,0)' }
+    ], { duration: 430, easing: 'ease-out' }));
+
+    for (const tl of tiles) {
+      const [x, y] = cellBox(tl.r, tl.c), cx = x + cw / 2, cy = y + ch / 2;
+      tl.el.style.visibility = 'hidden';           /* 原方块藏起来，由碎片顶替它的样子 */
+      const tBase = Math.min(170, Math.hypot(cx - bx, cy - by) * .2 + rnd(0, 70));
+
+      const f = rnd(.25, .4) * cw;                 /* 破裂瞬间的白光爆闪 */
+      const flash = document.createElement('div');
+      flash.className = 'shatter-flash';
+      flash.style.cssText = 'left:' + (cx - f) + 'px;top:' + (cy - f) + 'px;width:' + (f * 2) + 'px;height:' + (f * 2) + 'px';
+      layer.appendChild(flash);
+      shatter.anims.push(flash.animate([
+        { opacity: 0, transform: 'scale(.35)' },
+        { opacity: .95, offset: .22 },
+        { opacity: 0, transform: 'scale(1.25)' }
+      ], { duration: 430, delay: tBase, easing: 'ease-out', fill: 'forwards' }));
+
+      for (const poly of shardPolys(cw, ch)) {
+        let gx = 0, gy = 0;
+        for (const p of poly) { gx += p[0]; gy += p[1]; }
+        gx /= poly.length; gy /= poly.length;
+        const sh = document.createElement('div');
+        sh.className = 'shatter-shard';
+        sh.style.cssText = 'left:' + x + 'px;top:' + y + 'px;width:' + cw + 'px;height:' + ch + 'px;clip-path:polygon(' +
+          poly.map(p => (p[0] / cw * 100).toFixed(2) + '% ' + (p[1] / ch * 100).toFixed(2) + '%').join(',') + ')';
+        const cp = tl.inner.cloneNode(true);       /* 碎片里嵌一份方块本体，由 clip-path 裁出自己那一角 */
+        sh.appendChild(cp);
+        layer.appendChild(sh);
+
+        let ang = Math.atan2(y + gy - cy, x + gx - cx);   /* 飞溅方向 = 方块中心 → 碎片重心 */
+        if (Math.hypot(x + gx - cx, y + gy - cy) < cw * .18 || Math.random() < .18) ang = rnd(-Math.PI, Math.PI);
+        const sp = rnd(60, 175), dx = Math.cos(ang) * sp, dy = Math.sin(ang) * sp, fall = rnd(70, 170);
+        const rot = rnd(-220, 220), dur = rnd(650, 950), delay = tBase + rnd(0, 70);
+        shatter.anims.push(sh.animate([
+          { transform: 'translate3d(0,0,0) rotate(0deg) scale(1)', opacity: 1, easing: 'cubic-bezier(.1,.55,.3,1)' },
+          { transform: 'translate3d(' + (dx * .72).toFixed(1) + 'px,' + (dy * .72 + fall * .14).toFixed(1) + 'px,0) rotate(' +
+              (rot * .6).toFixed(1) + 'deg) scale(.96)', opacity: 1, offset: .55, easing: 'cubic-bezier(.5,0,.9,.6)' },
+          { transform: 'translate3d(' + (dx * 1.3).toFixed(1) + 'px,' + (dy * 1.3 + fall).toFixed(1) + 'px,0) rotate(' +
+              rot.toFixed(1) + 'deg) scale(.78)', opacity: 0 }
+        ], { duration: dur, delay: delay, fill: 'forwards' }));
+        end = Math.max(end, delay + dur);
+      }
+    }
+
+    const showAt = end + 70;                       /* 碎片落定 → 交给调用方开新局 */
+    shatter.timers.push(setTimeout(() => { if (onDone) onDone(); }, showAt));
+    shatter.timers.push(setTimeout(() => {
+      if (shatter.layer === layer) { layer.remove(); shatter.layer = null; }
+    }, showAt + 700));
+  }
+
+  /* 结束后的重开：遮罩淡出与爆裂同时开始，碎片落定后再刷新棋盘 */
+  function restartAfterOver() {
+    if (shatter.busy) return;
+    hideDialog();
+    playShatter(() => newGame(true));
+  }
+
+  /* ---------- 撤销：原路返回 ----------
+     1) 上一手新生成的方块就地缩小、模糊、淡出；
+     2) 其余方块沿上一手的反方向滑回原位；
+     3) 合并块在目标格分裂：被吸收的一半滑回自己的原格，
+        幸存方块在原位短暂模糊，把数字换回合并前的值。
+     动画期间锁住棋盘输入；新游戏会中止动画并直接接管。 */
   function undo() {
+    if (undoing) return;
     if (busy) flushMove();
     if (over || undoStack.length === 0) return;
     const snap = undoStack.pop();
-    grid = snap.grid; score = snap.score;
-    rebuild(false);
-    updateHUD();
+    const shown = parseInt(scoreEl.textContent, 10);
+    const prevScore = Number.isFinite(shown) ? shown : score;
+    score = snap.score;
+
+    if (reduced()) {                        /* 降级：不播动画，直接回到快照 */
+      grid = snap.grid;
+      rebuild(false);
+      updateHUD();
+      snack(t('snack.undo'));
+      return;
+    }
+
+    /* 视图身份对不上（例如刚在减少动态效果下走过一手）时，退化为直接重建 */
+    const curById = new Map(tiles.map(tl => [tl.id, tl]));
+    const snapById = new Map(snap.view.map(v => [v.id, v]));
+    const spawned = tiles.filter(tl => !snapById.has(tl.id));
+    const mapped = snap.view.filter(v => curById.has(v.id)).length;
+    if (spawned.length !== 1 || mapped !== snap.view.length - snap.merges.length) {
+      grid = snap.grid;
+      rebuild(false);
+      updateHUD();
+      snack(t('snack.undo'));
+      return;
+    }
+
+    undoing = true;
+    busy = true;
+    drag = null;
+    edge.x = 0; edge.v = 0; edge.t = 0;
+    stopSquash();
+    for (const tl of tiles) {                /* 清掉可能残留的挤压形变、入场动画与拖拽层级 */
+      tl.sq = 0; tl.sqv = 0; tl.sqT = 0;
+      tl.sqEl.style.transform = '';
+      tl.sqEl.style.transformOrigin = '';
+      tl.el.style.zIndex = '';
+      tl.fxEl.classList.remove('spawn');
+    }
+    updateHUD(prevScore);                    /* 分数同步回滚 */
     snack(t('snack.undo'));
+
+    const RETURN = 340, SPAWN_OUT = 220, SWAP_AT = 70, BLUR = 260;
+    const sp = spawned[0];
+    const spTf = sp.el.style.transform || 'translate(0px,0px)';
+    undoAnims.push(sp.el.animate([
+      { transform: spTf + ' scale(1)', filter: 'blur(0px)', opacity: 1 },
+      { transform: spTf + ' scale(.5)', filter: 'blur(6px)', opacity: 0 }
+    ], { duration: SPAWN_OUT, easing: 'cubic-bezier(.4,0,.7,1)', fill: 'forwards' }));
+
+    /* 非合并方块：滑回上一手的位置 */
+    for (const tl of tiles) {
+      if (tl === sp) continue;
+      const sv = snapById.get(tl.id);
+      if (!sv || (sv.r === tl.r && sv.c === tl.c)) continue;
+      const tf = tl.el.style.transform || 'translate(0px,0px)';
+      const p = cellBox(sv.r, sv.c);
+      undoAnims.push(tl.el.animate([
+        { transform: tf },
+        { transform: 'translate(' + p[0] + 'px,' + p[1] + 'px)' }
+      ], { duration: RETURN, easing: 'cubic-bezier(.25,1.15,.4,1)', fill: 'forwards' }));
+    }
+
+    /* 合并块分裂：吸收块从目标格分离并滑回原格；幸存块换回合并前的数字 */
+    const ghostById = new Map();
+    for (const pair of snap.merges) {
+      const s = curById.get(pair[0]);
+      const av = snapById.get(pair[1]);
+      if (!s || !av) continue;
+      const from = cellBox(s.r, s.c);
+      const to = cellBox(av.r, av.c);
+      const tf0 = 'translate(' + from[0] + 'px,' + from[1] + 'px)';
+      const tf1 = 'translate(' + to[0] + 'px,' + to[1] + 'px)';
+      const ghost = makeTile(s.r, s.c, av.v, false, true);
+      ghost.id = av.id;                      /* 还原身份：连续撤回时更早的快照仍能对上 */
+      ghost.el.style.zIndex = '60';
+      tilesEl.appendChild(ghost.el);
+      ghostById.set(av.id, ghost);
+      undoAnims.push(ghost.el.animate([
+        { transform: tf0 + ' scale(.8)', opacity: 0, easing: 'ease-out' },
+        { transform: tf0 + ' scale(1)', opacity: 1, offset: .18, easing: 'cubic-bezier(.25,1.15,.4,1)' },
+        { transform: tf1, opacity: 1 }
+      ], { duration: RETURN, fill: 'forwards' }));
+      undoAnims.push(s.fxEl.animate([
+        { filter: 'blur(0px)' },
+        { filter: 'blur(6px)', offset: .32 },
+        { filter: 'blur(0px)' }
+      ], { duration: BLUR, easing: 'ease-in-out' }));
+    }
+    if (snap.merges.length) {
+      undoTimers.push(setTimeout(() => {
+        for (const pair of snap.merges) {
+          const s = curById.get(pair[0]);
+          const sv = snapById.get(pair[0]);
+          if (s && sv) { s.v = sv.v; setFace(s.inner, s.v); }
+        }
+      }, SWAP_AT));
+    }
+
+    /* 收尾：按快照统一落位，清掉临时动画与分裂半块的临时层级 */
+    undoTimers.push(setTimeout(() => {
+      for (const a of undoAnims) { try { a.cancel(); } catch (e) {} }
+      undoAnims = [];
+      if (sp.el.parentNode) sp.el.remove();
+      const finalTiles = [];
+      for (const sv of snap.view) {
+        const tl = curById.get(sv.id) || ghostById.get(sv.id);
+        if (!tl) continue;
+        tl.r = sv.r; tl.c = sv.c; tl.sr = sv.r; tl.sc = sv.c; tl.v = sv.v;
+        setFace(tl.inner, tl.v);
+        tl.el.style.transition = 'none';
+        tl.el.style.zIndex = '';
+        if (tl.el.parentNode !== tilesEl) tilesEl.appendChild(tl.el);
+        settleAt(tl);
+        finalTiles.push(tl);
+      }
+      tiles = finalTiles;
+      tileGrid = new Array(16).fill(null);
+      for (const tl of tiles) tileGrid[tl.r * GameCore.N + tl.c] = tl;
+      grid = snap.grid;
+      undoing = false;
+      busy = false;
+      undoBtn.disabled = undoStack.length === 0;
+      undoTimers = [];
+    }, RETURN + 100));
   }
 
   /* ---------- 新游戏 ---------- */
-  function newGame() {
+  /* quiet=true：从破碎动画收尾过来，棋盘不重新淡入，新块直接在空盘上入场 */
+  function newGame(quiet) {
+    cancelUndo();
+    cancelShatter();
     abortAnims();
     stopSquash();
     drag = null;
@@ -1685,10 +2123,12 @@ function boot() {
     GameCore.addRandomTile(grid);
     rebuild(true);
     updateHUD();
-    /* 新一局棋盘淡入 */
-    boardEl.classList.remove('regen');
-    void boardEl.offsetWidth;
-    boardEl.classList.add('regen');
+    if (!quiet) {
+      /* 新一局棋盘淡入 */
+      boardEl.classList.remove('regen');
+      void boardEl.offsetWidth;
+      boardEl.classList.add('regen');
+    }
     snack(t('snack.newGame'));
   }
 
@@ -1701,8 +2141,15 @@ function boot() {
     scrimEl.classList.add('show');
     (canContinue ? dialogContinue : dialogAgain).focus();
   }
-  function hideDialog() { scrimEl.classList.remove('show'); }
-  dialogAgain.addEventListener('click', () => { hideDialog(); newGame(); });
+  function hideDialog() {
+    scrimEl.classList.remove('show');
+    /* 弹窗按钮仍持有焦点：主动失焦，避免遮罩隐身期间回车/空格再次触发重开 */
+    if (document.activeElement && scrimEl.contains(document.activeElement)) document.activeElement.blur();
+  }
+  dialogAgain.addEventListener('click', () => {
+    if (over) restartAfterOver();
+    else { hideDialog(); newGame(); }
+  });
   dialogContinue.addEventListener('click', () => { hideDialog(); over = false; });
   scrimEl.addEventListener('click', (e) => { if (e.target === scrimEl) hideDialog(); });
 
@@ -1735,6 +2182,7 @@ function boot() {
   let ptrStart = null;
   function onPointerDown(e) {
     if (!e.isPrimary) return;
+    if (undoing) return;                   /* 撤回动画播放中：不接管手势 */
     if (reduced()) { ptrStart = { x: e.clientX, y: e.clientY }; return; }   /* 降级：退回离散滑动 */
     if (busy) flushMove();                     /* 手指一落下就把上一手收掉，立刻能接管 */
     if (over) return;
@@ -1794,7 +2242,10 @@ function boot() {
   window.addEventListener('pointercancel', onPointerUp);
 
   /* ---------- 按钮 ---------- */
-  newGameBtn.addEventListener('click', newGame);
+  newGameBtn.addEventListener('click', () => {
+    if (over) restartAfterOver();     /* 终局后的重开：先炸碎旧盘 */
+    else newGame();
+  });
   undoBtn.addEventListener('click', undo);
 
   /* 波纹 */
@@ -1913,6 +2364,144 @@ function boot() {
   if (sysMq.addEventListener) sysMq.addEventListener('change', applySystemTheme);
   else if (sysMq.addListener) sysMq.addListener(applySystemTheme);   /* 旧 Safari */
 
+  /* ============================================================
+     背景：开 / 关 / 自定义图片
+     · 自定义图片只在运行时按 URL 引用，不写进 HTML
+     · 选图后用 object URL 立即生效；同一会话内切走再切回仍可恢复
+     · 刷新后 object URL 失效，先尝试原文件名（图片与 HTML 同目录时可用）
+     · 仍找不到就回退到「开」，并把分段按钮移回「开」
+     ============================================================ */
+  const BG_KEY = 'md2048-bg', BG_URL_KEY = 'md2048-bg-url', BG_NAME_KEY = 'md2048-bg-name';
+  const bgSegs = Array.from(document.querySelectorAll('.segment[data-bg-option]'));
+  let bgUrl = '', bgObjectUrl = '', bgSeq = 0;
+
+  function saveBgPref(key, value) {
+    try { localStorage.setItem(key, value); } catch (e) {}
+  }
+  function clearBgPref() {
+    try {
+      localStorage.removeItem(BG_URL_KEY);
+      localStorage.removeItem(BG_NAME_KEY);
+    } catch (e) {}
+  }
+  function setBgMode(mode) {
+    document.documentElement.setAttribute('data-bg', mode);
+    let active = null;
+    for (const seg of bgSegs) {
+      const on = seg.dataset.bgOption === mode;
+      seg.classList.toggle('active', on);
+      if (on) active = seg;
+    }
+    placeThumb(bgThumbEl, active);
+    bgPickBtn.hidden = mode !== 'custom';
+  }
+  function showBgError(show) { bgErrorEl.hidden = !show; }
+  function paintBg(url, name) {
+    bgUrl = url;
+    sceneCustomEl.style.backgroundImage = url ? 'url("' + url.replace(/"/g, '%22') + '")' : '';
+    const ready = !!url;
+    sceneEl.classList.toggle('custom-ready', ready);
+    bgPreviewEl.hidden = !ready;
+    if (ready) bgPreviewEl.src = url; else bgPreviewEl.removeAttribute('src');
+    bgPickIcon.classList.toggle('is-hidden', ready);
+    bgPickText.dataset.i18n = ready ? 'bg.change' : 'bg.pick';
+    bgPickText.textContent = t(ready ? 'bg.change' : 'bg.pick');
+    bgFileNameEl.textContent = ready ? (name || '') : '';
+  }
+  function dropCustomBg() {
+    if (bgObjectUrl) {
+      try { URL.revokeObjectURL(bgObjectUrl); } catch (e) {}
+      bgObjectUrl = '';
+    }
+    paintBg('', '');
+    clearBgPref();
+  }
+  function fallbackBg() {
+    dropCustomBg();
+    setBgMode('on');
+    saveBgPref(BG_KEY, 'on');
+    showBgError(true);
+  }
+  function probeBg(url, ok, fail) {
+    if (!url) { fail(); return; }
+    const img = new Image();
+    img.onload = () => ok();
+    img.onerror = () => fail();
+    img.src = url;
+  }
+  function readBgPref() {
+    let mode = 'on', url = '', name = '';
+    try {
+      mode = localStorage.getItem(BG_KEY) || 'on';
+      url = localStorage.getItem(BG_URL_KEY) || '';
+      name = localStorage.getItem(BG_NAME_KEY) || '';
+    } catch (e) {}
+    if (mode !== 'off' && mode !== 'custom') mode = 'on';
+    return { mode: mode, url: url, name: name };
+  }
+  /* 验证保存的地址：失效时先试同名文件（与 HTML 同目录），再回退「开」 */
+  function restoreStoredBg(url, name, seq) {
+    const restore = (next) => {
+      if (seq !== bgSeq) return;
+      paintBg(next, name);
+      saveBgPref(BG_URL_KEY, next);
+    };
+    probeBg(url, () => restore(url), () => {
+      if (seq !== bgSeq) return;
+      if (name && name !== url) {
+        probeBg(name, () => restore(name), () => { if (seq === bgSeq) fallbackBg(); });
+      } else fallbackBg();
+    });
+  }
+  function chooseBgMode(mode) {
+    bgSeq++;                                   /* 取消仍在验证中的选图 */
+    showBgError(false);
+    setBgMode(mode);
+    saveBgPref(BG_KEY, mode);
+    if (mode !== 'custom') { sceneEl.classList.remove('custom-ready'); return; }
+    if (bgUrl) { sceneEl.classList.add('custom-ready'); return; }
+    /* 本次会话还没加载过图：先试上次保存的地址，失败则回退「开」 */
+    const pref = readBgPref();
+    sceneEl.classList.remove('custom-ready');
+    if (pref.url) restoreStoredBg(pref.url, pref.name, bgSeq);
+  }
+
+  bgSegs.forEach(seg => {
+    seg.addEventListener('click', () => chooseBgMode(seg.dataset.bgOption));
+  });
+  bgPickBtn.addEventListener('click', () => bgFileEl.click());
+  bgFileEl.addEventListener('change', () => {
+    const file = bgFileEl.files && bgFileEl.files[0];
+    bgFileEl.value = '';                       /* 允许再次选择同一张图 */
+    if (!file) return;
+    const seq = ++bgSeq;
+    const url = URL.createObjectURL(file);
+    probeBg(url, () => {
+      if (seq !== bgSeq) { try { URL.revokeObjectURL(url); } catch (e) {} return; }
+      if (bgObjectUrl) { try { URL.revokeObjectURL(bgObjectUrl); } catch (e) {} }
+      bgObjectUrl = url;
+      paintBg(url, file.name);
+      setBgMode('custom');
+      saveBgPref(BG_KEY, 'custom');
+      saveBgPref(BG_URL_KEY, url);
+      saveBgPref(BG_NAME_KEY, file.name);
+      showBgError(false);
+    }, () => {
+      try { URL.revokeObjectURL(url); } catch (e) {}
+      if (seq !== bgSeq) return;
+      fallbackBg();
+    });
+  });
+
+  /* 启动恢复：验证保存的地址；失效时先试同名文件，再回退「开」 */
+  (function initBg() {
+    const pref = readBgPref();
+    if (pref.mode !== 'custom') { setBgMode(pref.mode); return; }
+    setBgMode('custom');
+    if (!pref.url) return;                     /* 选过自定义但还没上传 */
+    restoreStoredBg(pref.url, pref.name, ++bgSeq);
+  })();
+
   /* ---------- 启动 ---------- */
   /* 滑块初始定位（无动画） */
   function placeThumbNoAnim(thumb, sel) {
@@ -1931,6 +2520,7 @@ function boot() {
     thumbRaf = requestAnimationFrame(() => {
       placeThumbNoAnim(themeThumbEl, '.segment[data-theme-option].active');
       placeThumbNoAnim(langThumbEl, '.segment[data-lang].active');
+      placeThumbNoAnim(bgThumbEl, '.segment[data-bg-option].active');
       /* 方块定位用的是实测 px 偏移，棋盘缩放后必须重新贴回格子原点 */
       if (!busy && !drag) repositionAll();
     });
