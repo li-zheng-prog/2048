@@ -16,8 +16,8 @@
 -   **Material Design 3** 视觉风格，森林绿主色与奶油底色
 -   **两套配色**：国风配色（毛绿 · 湘蓝 · 流黄）与经典配色（绿金双阶）
 -   **明暗主题**：跟随系统 / 浅色 / 深色，首帧无闪烁
--   **背景**：可关闭插画、保持默认，或选择本地图片作为背景（图片不写入 HTML）；自定义背景可调节毛玻璃模糊度
--   **三语界面**：中文 / English / 日本語，选择会被记住
+-   **背景**：默认纯色底，可选择本地图片作为背景（图片不写入 HTML）；自定义背景可调节毛玻璃模糊度
+-   **双语界面**：中文 / English，选择会被记住
 -   **平板模式**：设置、新游戏、撤销与全屏按钮统一为 69px 圆形并对齐屏幕右端同一竖线，新游戏变为绿色镜像图标；窄屏自动回退横排
 -   **键盘操作**：方向键或 `W` `A` `S` `D`
 -   **触摸与鼠标拖拽**：跟手移动、挤压形变与边缘回弹动画
@@ -28,7 +28,7 @@
 -   **响应式布局**，适配手机安全区，支持全屏模式
 -   尊重系统的「减少动态效果」设置，提供无障碍标签与键盘可达性
 
-整个游戏只有 **一个 HTML 文件**，字体与背景图均已内嵌，不需要网络、构建工具或依赖安装，断网也能直接玩。
+整个游戏只有 **一个 HTML 文件**，字体已内嵌，不需要网络、构建工具或依赖安装，断网也能直接玩。
 
 ## 平板模式预览
 
@@ -54,7 +54,7 @@
 
 ```text
 .
-├── index.html          # 游戏本体（单文件，内嵌字体与背景图）
+├── index.html          # 游戏本体（单文件，内嵌字体）
 ├── README.md
 ├── LICENSE             # MIT 许可证
 ├── .gitignore
@@ -70,10 +70,10 @@
 
 -   纯 HTML / CSS / JavaScript，无框架、无外部请求。
 -   游戏核心 `GameCore` 为纯函数实现，负责滑动、合并、计分与状态判断。
--   内嵌了新宋体（NSimSun）子集约 90KB，收录整页文案用字（含日文假名与标点），保证不同平台的中文字形一致；两张明暗背景图内嵌于 CSS 中（合计约 3.2MB），因此 `index.html` 约 4.5MB，首次加载后由浏览器缓存。
+-   内嵌两套完整字体：数字与英文用 Times New Roman（常规+粗体，4731 字形），中文用新宋体（NSimSun，28905 字形），woff2 合计约 6.9MB；任何平台上界面与动态文本的字形都与电脑版一致。`index.html` 约 9.7MB，首次加载后由浏览器缓存。
 -   动画基于 `requestAnimationFrame` 与 Pointer Events，包含拖拽跟手、方块挤压和边缘弹簧回弹。
 -   仅使用 `localStorage` 保存最高分、当前进度与界面偏好（`md2048-best`、`md2048-save`、`md2048-theme`、`md2048-palette`、`md2048-lang`、`md2048-bg`、`md2048-bg-url`、`md2048-bg-name`、`md2048-bg-blur`、`md2048-tablet`），不会上传任何数据。
--   自定义背景图片只在运行时按 URL 引用（object URL，刷新后先尝试与 HTML 同目录的原文件名），不会写入 HTML；地址失效时自动回退到默认背景。毛玻璃模糊度通过 CSS 变量 `--scene-custom-filter` 即时生效，默认 0（原图清晰），最大 40px。
+-   自定义背景图片只在运行时按 URL 引用（object URL，刷新后先尝试与 HTML 同目录的原文件名），不会写入 HTML；地址失效时自动回退为纯色背景。毛玻璃模糊度通过 CSS 变量 `--scene-custom-filter` 即时生效，默认 0（原图清晰），最大 40px。
 
 ## 浏览器支持
 
@@ -81,7 +81,7 @@
 
 ## English
 
-A single-file 2048 game with a Material Design 3 look. No dependencies, no build step, fully offline. It features two color palettes, light/dark themes, Chinese/English/Japanese UI, keyboard and pointer-drag controls, up to 20 undo steps, automatic progress saving across reloads, and a locally stored best score.
+A single-file 2048 game with a Material Design 3 look. No dependencies, no build step, fully offline. It features two color palettes, light/dark themes, Chinese/English UI, keyboard and pointer-drag controls, up to 20 undo steps, automatic progress saving across reloads, and a locally stored best score.
 
 Deploy with GitHub Pages by setting the branch to `main` and the folder to `/ (root)`.
 
@@ -91,4 +91,4 @@ The code and original assets are released under the [MIT License](LICENSE).
 
 本项目采用 [MIT 许可证](LICENSE)，可自由使用、修改和分发，但需保留版权与许可声明。
 
-> 代码与原创素材采用 MIT 许可证；如内嵌字体或背景图来自第三方，其权利仍归原权利人所有。
+> 代码与原创素材采用 MIT 许可证；如内嵌字体来自第三方，其权利仍归原权利人所有。
