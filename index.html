@@ -1096,7 +1096,8 @@ html[data-modal="open"] .actions > * {
 
 /* ---------- 平板模式：三个操作按钮停靠屏幕右端，纵向排列 ----------
    按钮统一为 69px 圆形（全屏按钮 46px 的 1.5 倍），等宽等高保证圆心同轴；
-   只在有足够横向空间时停靠；手机分辨率下改为停靠屏幕底部居中（见下方手机媒体查询） */
+   仅 ≥700px 生效；手机分辨率无需本开关，操作按钮一律停靠屏幕底部居中
+   （见下方手机媒体查询） */
 @media (min-width: 700px) {
   html[data-tablet="on"] .actions {
     position: fixed;
@@ -1150,11 +1151,11 @@ html[data-modal="open"] .actions > * {
   }
 }
 
-/* ---------- 平板模式：手机分辨率下停靠屏幕底部居中 ----------
+/* ---------- 手机分辨率：操作按钮停靠屏幕底部居中（无需开启平板模式） ----------
    四个按钮统一 56px 圆形横排（设置/新游戏/撤销/全屏），全屏按钮并入行尾；
    不支持全屏的浏览器（如 iOS Safari）该按钮保持隐藏，行内只有三个按钮 */
 @media not all and (min-width: 700px) {
-  html[data-tablet="on"] .actions {
+  .actions {
     position: fixed;
     bottom: calc(clamp(14px, 3.5vh, 30px) + env(safe-area-inset-bottom, 0px));
     left: 0;
@@ -1163,42 +1164,44 @@ html[data-modal="open"] .actions > * {
     gap: 12px;
     margin: 0;
   }
-  html[data-tablet="on"] .actions > .icon-btn,
-  html[data-tablet="on"] #newGameBtn {
+  .actions > .icon-btn,
+  #newGameBtn {
     width: 56px;
     height: 56px;
     flex: none;
     border-radius: 50%;
   }
-  html[data-tablet="on"] #settingsBtn svg {
+  #settingsBtn svg {
     width: 24px;
     height: 24px;
   }
-  html[data-tablet="on"] #undoBtn svg,
-  html[data-tablet="on"] .new-game-icon {
+  #undoBtn svg,
+  .new-game-icon {
     width: 28px;
     height: 28px;
     stroke-width: 2.4;
   }
-  html[data-tablet="on"] #newGameBtn { padding: 0; }
-  html[data-tablet="on"] #newGameBtn .new-game-label { display: none; }
-  html[data-tablet="on"] .new-game-icon { display: block; }
+  #newGameBtn { padding: 0; }
+  #newGameBtn .new-game-label { display: none; }
+  .new-game-icon { display: block; }
   /* 全屏按钮从右下角悬浮转为行内元素，与其余按钮同行等大 */
-  html[data-tablet="on"] .fab {
+  .fab {
     position: static;
     width: 56px;
     height: 56px;
     border-radius: 50%;
   }
-  html[data-tablet="on"] .fab svg {
+  .fab svg {
     width: 26px;
     height: 26px;
     stroke-width: 2.4;
   }
   /* 预留按钮条空间，避免按钮压住棋盘 */
-  html[data-tablet="on"] .app {
+  .app {
     padding-bottom: calc(clamp(14px, 3.5vh, 30px) + 72px + env(safe-area-inset-bottom, 0px));
   }
+  /* 平板模式开关在手机上不起作用（底部停靠已是无条件行为），隐藏以免误导 */
+  #tabletRow { display: none; }
 }
 
 /* ---------- 小屏适配 ---------- */
@@ -1362,7 +1365,7 @@ html[data-modal="open"] .actions > * {
       </div>
     </div>
     <span class="section-label" data-i18n="settings.layout">布局</span>
-    <div class="setting-row">
+    <div class="setting-row" id="tabletRow">
       <label class="setting-copy" for="tabletToggle">
         <span class="setting-title" id="tabletLabel" data-i18n="settings.tablet">平板模式</span>
         <span class="setting-desc" id="tabletDesc" data-i18n="settings.tablet.desc">操作按钮停靠右端</span>
