@@ -155,6 +155,8 @@ body {
   -webkit-font-smoothing: antialiased;
   transition: background-color .35s var(--md-sys-easing), color .35s var(--md-sys-easing);
   overflow-x: hidden;
+  /* 滑动是游戏操作：视口边缘不许触发下拉刷新/回弹 */
+  overscroll-behavior-y: contain;
 }
 /* ---------- 页面背景：纯色底 + 自定义图片 + 毛玻璃层 ---------- */
 .scene {
@@ -2637,11 +2639,18 @@ function boot() {
   /* ---------- 输入：跟手拖拽（触摸 / 鼠标） ----------
      按下即接管棋盘，方向在越过 LOCK 的那一帧锁定；此后手指的溢出量实时喂给
      弹簧层做挤压，松手时按已跟手的位移结算这一手 —— 所以块是被「推」过去的，
-     而不是松手后才开始动 */
+     而不是松手后才开始动。
+     起手位置不限于棋盘：任何布局/背景模式下，页面空白处同样接管手势；
+     只有按钮、表单控件与弹窗遮罩上的按下保持原生语义。 */
   const DAMP = .62, LOCK = 10;
+  /* 这些元素上的按下不作为游戏手势：点按、滚动、拖滑杆等原生交互优先 */
+  const GESTURE_EXCLUDE =
+    'button, a, input, select, textarea, label, [role="button"], [role="switch"], .scrim';
   let ptrStart = null;
   function onPointerDown(e) {
     if (!e.isPrimary) return;
+    if (e.target.closest(GESTURE_EXCLUDE)) return;
+    e.preventDefault();                    /* 空白处起手：压掉文本选择等原生拖拽行为 */
     if (undoing) return;                   /* 撤回动画播放中：不接管手势 */
     if (reduced()) { ptrStart = { x: e.clientX, y: e.clientY }; return; }   /* 降级：退回离散滑动 */
     if (busy) flushMove();                     /* 手指一落下就把上一手收掉，立刻能接管 */
@@ -2652,7 +2661,7 @@ function boot() {
     for (const tl of tiles) tl.off = 0;
     drag = { sx: e.clientX, sy: e.clientY, px: e.clientX - ox, py: e.clientY - oy,
              ox, oy, vec: null, dir: null, d: 0, geo: dragGeo() };
-    try { boardEl.setPointerCapture(e.pointerId); } catch (err) {}
+    try { document.body.setPointerCapture(e.pointerId); } catch (err) {}
   }
   function onPointerMove(e) {
     if (!drag) return;
@@ -2695,11 +2704,26 @@ function boot() {
     if (Math.abs(dx) > Math.abs(dy)) performMove(dx > 0 ? 'right' : 'left');
     else performMove(dy > 0 ? 'down' : 'up');
   }
-  boardEl.addEventListener('pointerdown', onPointerDown);
+  document.addEventListener('pointerdown', onPointerDown);
   window.addEventListener('pointermove', onPointerMove);
   window.addEventListener('pointerup', onPointerUp);
-  /* 系统打断手势（多指、手势切换）时按松手同样结算，避免方块停在半途、busy 锁死 */
-  window.addEventListener('pointercancel', onPointerUp);
+  function onPointerCancel() {
+    if (drag) { endDrag(); return; }       /* 系统打断（多指、手势切换）：按松手结算，避免方块停在半途、busy 锁死 */
+    ptrStart = null;                       /* 浏览器接管的手势（如页面滚动）不误判为滑动 */
+  }
+  window.addEventListener('pointercancel', onPointerCancel);
+
+  /* ---------- 触摸手势面 ----------
+     页面在视口内放得下时整页禁用浏览器手势（touch-action:none），空白区的
+     四向滑动才能落到游戏里，顺带杜绝下拉刷新/橡皮筋；放不下（矮视口需要
+     滚动）时退回 pan-y 保住纵向滚动，横向滑动仍可玩。棋盘自身的 none 不变。 */
+  function syncTouchAction() {
+    const scrollable = document.documentElement.scrollHeight > window.innerHeight + 1;
+    document.body.style.touchAction = scrollable ? 'pan-y' : 'none';
+  }
+  window.addEventListener('resize', syncTouchAction, { passive: true });
+  if (window.ResizeObserver) new ResizeObserver(syncTouchAction).observe(document.body);
+  syncTouchAction();
 
   /* ---------- 按钮 ---------- */
   newGameBtn.addEventListener('click', () => {
