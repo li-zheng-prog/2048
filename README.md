@@ -20,13 +20,6 @@ Play in your browser with no installation, dependencies, or network connection. 
 
 ## Screenshots
 
-### Desktop
-
-<p align="center">
-  <img src="docs/preview-light.jpg" width="49%" alt="2048 in the light theme">
-  <img src="docs/preview-dark.jpg" width="49%" alt="2048 in the dark theme">
-</p>
-
 ### Phone
 
 <p align="center">
@@ -46,6 +39,13 @@ In tablet mode, action buttons dock along the right edge. The settings panel ope
 <p align="center">
   <img src="docs/preview-tablet-settings-light.jpg" width="32%" alt="Tablet settings panel in the light theme">
   <img src="docs/preview-tablet-settings-dark.jpg" width="32%" alt="Tablet settings panel in the dark theme">
+</p>
+
+### Desktop
+
+<p align="center">
+  <img src="docs/preview-light.jpg" width="49%" alt="2048 in the light theme">
+  <img src="docs/preview-dark.jpg" width="49%" alt="2048 in the dark theme">
 </p>
 
 ## How to Play
