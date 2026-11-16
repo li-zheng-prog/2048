@@ -1,8 +1,3 @@
-<p align="center">
-  <img src="docs/preview-light.jpg" width="49%" alt="2048 in the light theme">
-  <img src="docs/preview-dark.jpg" width="49%" alt="2048 in the dark theme">
-</p>
-
 <h1 align="center">2048 · Material Design</h1>
 
 <p align="center">
@@ -24,6 +19,13 @@ Play in your browser with no installation, dependencies, or network connection. 
 - **Motion and accessibility:** Supports reduced-motion preferences, keyboard access, and accessible labels. Game-over effects use a tile-shatter animation.
 
 ## Screenshots
+
+### Desktop
+
+<p align="center">
+  <img src="docs/preview-light.jpg" width="49%" alt="2048 in the light theme">
+  <img src="docs/preview-dark.jpg" width="49%" alt="2048 in the dark theme">
+</p>
 
 ### Phone
 
