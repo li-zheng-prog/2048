@@ -12,7 +12,7 @@ Play in your browser with no installation, dependencies, or network connection. 
 
 - **Gameplay:** Reach 2048, then keep playing. Undo up to 20 moves, and resume your saved game after a reload.
 - **Input:** Use the arrow keys or `W` `A` `S` `D`. Swipe or drag on the board or any blank area of the page.
-- **Appearance:** Choose the Guofeng or classic color palette, and use the light theme, dark theme, or system preference.
+- **Appearance:** Choose the Guofeng, classic, or system color palette, independently of the light, dark, or system theme. The system palette derives the interface colors and tile shades from one accent color.
 - **Custom backgrounds:** Select an image from your device and adjust its blur. The image is referenced locally and is not added to the HTML file.
 - **Language:** Switch between Chinese and English; your preference is remembered.
 - **Responsive layouts:** Play on desktop, tablet, and phone. On phones, action buttons dock at the bottom automatically. Tablet mode docks them along the right edge.
@@ -70,6 +70,10 @@ The game saves your current board, score, undo history, best score, and interfac
 ## Run or Deploy
 
 Open `index.html` in a modern browser to play locally. To host the game with GitHub Pages, select the `main` branch and the `/ (root)` folder in the repository's Pages settings.
+
+### System color palette
+
+Select **Settings → Appearance → Color Scheme → Follow System** to use the browser-provided accent color when available. This color can differ from the operating system's accent color. **Settings → Theme** separately controls light or dark mode.
 
 ## Project Structure
 
